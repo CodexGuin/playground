@@ -1,7 +1,5 @@
 // ignore_for_file: avoid_print
 
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
 class Desktop extends StatefulWidget {
@@ -21,9 +19,19 @@ class _DesktopState extends State<Desktop> with WidgetsBindingObserver {
   int height3 = 0, width3 = 0;
 
   // * Generated columns
-  int columnsToGenerate = 1;
+  int columnsToGenerate = 3;
   final GlobalKey _c = GlobalKey();
   int colHeight = 0, colWidth = 0;
+
+  // * Neuron info
+  int numInputsNeuron = 1;
+  int numOutputsNeuron = 1;
+  int numHiddenNeuron = 1;
+  int numHiddenLayers = 1;
+  double neuronSize = 50;
+
+  List<Neuron> neurons = [];
+  List<List<Neuron>> layers = [];
 
   @override
   void initState() {
@@ -33,7 +41,9 @@ class _DesktopState extends State<Desktop> with WidgetsBindingObserver {
   }
 
   void updateSize() {
+    print('--------------------------------------');
     setState(() {
+      columnsToGenerate = numHiddenLayers + 2;
       final RenderBox? renderBox1 =
           _k1.currentContext?.findRenderObject() as RenderBox?;
       final RenderBox? renderBox2 =
@@ -51,12 +61,96 @@ class _DesktopState extends State<Desktop> with WidgetsBindingObserver {
         width3 = renderBox3.size.width.toInt() - margin;
         colHeight = renderBoxC!.size.height.toInt() - 20;
         colWidth = renderBoxC.size.width.toInt() - 15;
+
         print('Height1: $height1, Width1: $width1');
         print('Height2: $height2, Width2: $width2');
         print('Height3: $height3, Width3: $width3');
         print('ColHeight: $colHeight, ColWidth: $colWidth');
+        print('Number of Input Neurons: $numInputsNeuron');
+        print('Number of Output Neurons: $numOutputsNeuron');
+        print('Number of Hidden Neurons: $numHiddenNeuron');
+        print('Number of Hidden Layers: $numHiddenLayers');
       }
+
+      calculatePositions();
     });
+  }
+
+  // * List of offsets for each neuron type
+  List<Offset> inputOffsets = [];
+  List<Offset> hiddenOffsets = [];
+  List<Offset> outputOffsets = [];
+
+  void calculatePositions() {
+    double screenHeight = MediaQuery.of(context).size.height;
+    double screenWidth = MediaQuery.of(context).size.width;
+    print("Current screen height: $screenHeight, width: $screenWidth");
+
+    // * Calculating all offsets
+    double columnTopLeftX = margin * 2 + width1 + 10;
+    double columnTopLeftY = margin + height3 / 4 + 10;
+    print("Column top left: $columnTopLeftX, $columnTopLeftY");
+
+    double columnTopRightX = columnTopLeftX + colWidth;
+    double columnTopRightY = columnTopLeftY;
+    print("Column top right: $columnTopRightX, $columnTopRightY");
+
+    double columnBottomLeftX = columnTopLeftX;
+    double columnBottomLeftY = columnTopLeftY + colHeight;
+    print("Column bottom left: $columnBottomLeftX, $columnBottomLeftY");
+
+    double columnBottomRightX = columnTopRightX;
+    double columnBottomRightY = columnTopRightY + colHeight;
+    print("Column bottom right: $columnBottomRightX, $columnBottomRightY");
+
+    // * Get middle points (Aka center coordinates of the first colunmn)
+    double columnMiddleX = (columnTopLeftX + columnTopRightX) / 2;
+    double columnMiddleY = (columnTopLeftY + columnBottomLeftY) / 2;
+    print("Column middle: $columnMiddleX, $columnMiddleY");
+
+    // * Calculate offset needed for middle of column from custom paint
+    double xOffset = columnMiddleX - screenWidth;
+    double yOffset = columnMiddleY - 0.5 * screenHeight;
+
+    // * Recreate the list using num of neurons in each list
+    setState(() {
+      inputOffsets = List<Offset>.generate(numInputsNeuron, (index) {
+        if (numInputsNeuron == 1) {
+          return Offset(xOffset, yOffset);
+        } else {
+          // * Calculate spaces between each neurons
+          double space = colHeight - (neuronSize * numInputsNeuron);
+          double gapBetweenNeurons = space / (numInputsNeuron - 1);
+          return Offset(xOffset, yOffset + gapBetweenNeurons * index);
+        }
+      });
+      hiddenOffsets = List<Offset>.generate(numHiddenNeuron, (index) {
+        if (numHiddenNeuron == 1) {
+          return Offset(xOffset, yOffset);
+        } else {
+          // * Calculate spaces between each neurons
+          double space = colHeight - (neuronSize * numHiddenNeuron);
+          double gapBetweenNeurons = space / (numHiddenNeuron - 1);
+          return Offset(xOffset, yOffset + gapBetweenNeurons * index);
+        }
+      });
+      outputOffsets = List<Offset>.generate(numOutputsNeuron, (index) {
+        if (numOutputsNeuron == 1) {
+          return Offset(xOffset, yOffset);
+        } else {
+          // * Calculate spaces between each neurons
+          double space = colHeight - (neuronSize * numOutputsNeuron);
+          double gapBetweenNeurons = space / (numOutputsNeuron - 1);
+          return Offset(xOffset, yOffset + gapBetweenNeurons * index);
+        }
+      });
+    });
+
+    for (var a in inputOffsets) {
+      print(a);
+    }
+
+    print('Testing offset: $xOffset, $yOffset');
   }
 
   @override
@@ -152,6 +246,7 @@ class _DesktopState extends State<Desktop> with WidgetsBindingObserver {
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
+                            // * Top portion
                             Flexible(
                                 child: Container(
                                     margin: const EdgeInsets.only(
@@ -202,10 +297,8 @@ class _DesktopState extends State<Desktop> with WidgetsBindingObserver {
                                       child: Container(
                                           key: index == 0 ? _c : null,
                                           margin: margin,
-                                          decoration: BoxDecoration(
-                                              color: Colors.amber,
-                                              borderRadius:
-                                                  BorderRadius.circular(10)),
+                                          decoration: const BoxDecoration(
+                                              color: Colors.amber),
                                           child: Column(
                                             mainAxisAlignment:
                                                 MainAxisAlignment.center,
@@ -217,7 +310,7 @@ class _DesktopState extends State<Desktop> with WidgetsBindingObserver {
                                                       'Height: $colHeight')),
                                               Center(
                                                   child:
-                                                      Text('Width: $colWidth'))
+                                                      Text('Width: $colWidth')),
                                             ],
                                           )));
                                 })))
@@ -238,81 +331,214 @@ class _DesktopState extends State<Desktop> with WidgetsBindingObserver {
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                            ConstrainedBox(
-                                constraints: const BoxConstraints.tightFor(
-                                    width: 120, height: 35),
-                                child: ElevatedButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        if (columnsToGenerate < 10) {
-                                          columnsToGenerate++;
-                                        }
-                                      });
-                                      didChangeMetrics();
-                                    },
-                                    child: const Text('Add'))),
-                            const SizedBox(height: 10),
-                            Text('Columns: $columnsToGenerate'),
-                            const SizedBox(height: 10),
-                            ConstrainedBox(
-                                constraints: const BoxConstraints.tightFor(
-                                    width: 120, height: 35),
-                                child: ElevatedButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        if (columnsToGenerate > 1) {
-                                          columnsToGenerate--;
-                                        }
-                                      });
-                                      didChangeMetrics();
-                                    },
-                                    child: const Text('Remove')))
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // * Debugging button
+                                ConstrainedBox(
+                                    constraints: const BoxConstraints.tightFor(
+                                        width: 100, height: 35),
+                                    child: ElevatedButton(
+                                        onPressed: updateSize,
+                                        child: const Text('Debug'))),
+                                const SizedBox(width: 20),
+                                // * Debugging button
+                                ConstrainedBox(
+                                    constraints: const BoxConstraints.tightFor(
+                                        width: 100, height: 35),
+                                    child: ElevatedButton(
+                                        onPressed: () {},
+                                        child: const Text('Viz'))),
+                              ],
+                            ),
+                            // * Number of input neurons
+                            Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  IconButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          if (numInputsNeuron > 1) {
+                                            numInputsNeuron--;
+                                          }
+                                        });
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
+                                          updateSize();
+                                        });
+                                      },
+                                      icon: const Icon(Icons.remove)),
+                                  const SizedBox(height: 10),
+                                  Text('Input Neurons: $numInputsNeuron'),
+                                  const SizedBox(height: 10),
+                                  IconButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          if (numInputsNeuron < 10) {
+                                            numInputsNeuron++;
+                                          }
+                                        });
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
+                                          updateSize();
+                                        });
+                                      },
+                                      icon: const Icon(Icons.add))
+                                ]),
+                            // * Number of hidden layers
+                            Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  IconButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          if (numHiddenLayers > 1) {
+                                            numHiddenLayers--;
+                                          }
+                                        });
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
+                                          updateSize();
+                                        });
+                                      },
+                                      icon: const Icon(Icons.remove)),
+                                  const SizedBox(height: 10),
+                                  Text('Hidden Layers: $numHiddenLayers'),
+                                  const SizedBox(height: 10),
+                                  IconButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          if (numHiddenLayers < 10) {
+                                            numHiddenLayers++;
+                                          }
+                                        });
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
+                                          updateSize();
+                                        });
+                                      },
+                                      icon: const Icon(Icons.add))
+                                ]),
+                            // * Number of neurons in hidden layer
+                            Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  IconButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          if (numHiddenNeuron > 1) {
+                                            numHiddenNeuron--;
+                                          }
+                                        });
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
+                                          updateSize();
+                                        });
+                                      },
+                                      icon: const Icon(Icons.remove)),
+                                  const SizedBox(height: 10),
+                                  Text('Hidden Neurons: $numHiddenNeuron'),
+                                  const SizedBox(height: 10),
+                                  IconButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          if (numHiddenNeuron < 10) {
+                                            numHiddenNeuron++;
+                                          }
+                                        });
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
+                                          updateSize();
+                                        });
+                                      },
+                                      icon: const Icon(Icons.add))
+                                ]),
+                            // * Number of output neurons
+                            Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  IconButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          if (numOutputsNeuron > 1) {
+                                            numOutputsNeuron--;
+                                          }
+                                        });
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
+                                          updateSize();
+                                        });
+                                      },
+                                      icon: const Icon(Icons.remove)),
+                                  const SizedBox(height: 10),
+                                  Text('Output Neurons: $numOutputsNeuron'),
+                                  const SizedBox(height: 10),
+                                  IconButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          if (numOutputsNeuron < 10) {
+                                            numOutputsNeuron++;
+                                          }
+                                        });
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
+                                          updateSize();
+                                        });
+                                      },
+                                      icon: const Icon(Icons.add))
+                                ])
                           ]))))),
           CustomPaint(
-              painter: NeuralNetworkPainter(
-            neurons: [
-              Neuron(
-                  position: const Offset(-1000, 100),
-                  type: NeuronType.input,
-                  layerIndex: 0),
-              Neuron(
-                  position: const Offset(-1000, -100),
-                  type: NeuronType.input,
-                  layerIndex: 0),
-              Neuron(
-                  position: const Offset(-750, 100),
-                  type: NeuronType.hidden,
-                  layerIndex: 1),
-              Neuron(
-                  position: const Offset(-750, 0),
-                  type: NeuronType.hidden,
-                  layerIndex: 1),
-              Neuron(
-                  position: const Offset(-750, -100),
-                  type: NeuronType.hidden,
-                  layerIndex: 1),
-              Neuron(
-                  position: const Offset(-500, -200),
-                  type: NeuronType.output,
-                  layerIndex: 2),
-              Neuron(
-                  position: const Offset(-500, -100),
-                  type: NeuronType.output,
-                  layerIndex: 2),
-              Neuron(
-                  position: const Offset(-500, 0),
-                  type: NeuronType.output,
-                  layerIndex: 2),
-              Neuron(
-                  position: const Offset(-500, 100),
-                  type: NeuronType.output,
-                  layerIndex: 2),
-              Neuron(
-                  position: const Offset(-500, 200),
-                  type: NeuronType.output,
-                  layerIndex: 2),
-            ],
-          ))
+            painter: NeuralNetworkPainter(neuronSize: neuronSize, neurons: []),
+          )
+          /* CustomPaint(
+              painter: NeuralNetworkPainter(neurons: [
+            Neuron(
+                position: const Offset(-1000, 100),
+                type: NeuronType.input,
+                layerIndex: 0),
+            Neuron(
+                position: const Offset(-1000, -100),
+                type: NeuronType.input,
+                layerIndex: 0),
+            Neuron(
+                position: const Offset(-750, 100),
+                type: NeuronType.hidden,
+                layerIndex: 1),
+            Neuron(
+                position: const Offset(-750, 0),
+                type: NeuronType.hidden,
+                layerIndex: 1),
+            Neuron(
+                position: const Offset(-750, -100),
+                type: NeuronType.hidden,
+                layerIndex: 1),
+            Neuron(
+                position: const Offset(-500, -200),
+                type: NeuronType.output,
+                layerIndex: 2),
+            Neuron(
+                position: const Offset(-500, -100),
+                type: NeuronType.output,
+                layerIndex: 2),
+            Neuron(
+                position: const Offset(-500, 0),
+                type: NeuronType.output,
+                layerIndex: 2),
+            Neuron(
+                position: const Offset(-500, 100),
+                type: NeuronType.output,
+                layerIndex: 2),
+            Neuron(
+                position: const Offset(-500, 200),
+                type: NeuronType.output,
+                layerIndex: 2),
+          ])) */
         ]));
   }
 }
@@ -338,7 +564,7 @@ class NeuralConnectionPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     var paint = Paint()
       ..color = Colors.grey
-      ..strokeWidth = 200;
+      ..strokeWidth = 2;
 
     for (var neuronOne in layerOneNeurons) {
       for (var neuronTwo in layerTwoNeurons) {
@@ -357,7 +583,7 @@ class NeuralNetworkPainter extends CustomPainter {
   final List<Neuron> neurons;
   final double neuronSize;
 
-  NeuralNetworkPainter({required this.neurons, this.neuronSize = 50});
+  NeuralNetworkPainter({required this.neurons, required this.neuronSize});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -377,13 +603,13 @@ class NeuralNetworkPainter extends CustomPainter {
           getNeuronColor(neuron.type); // Different color based on neuron type
       canvas.drawCircle(neuron.position, neuronSize / 2, paint);
       // * Testing painting (pacman lel)
-      canvas.drawArc(
+      /* canvas.drawArc(
           Rect.fromCenter(
               center: const Offset(-1115, 15), width: 155, height: 155),
           1,
           1.5 * pi,
           true,
-          paint);
+          paint); */
     }
   }
 
